@@ -11,7 +11,7 @@ import SwiftUI
 struct EmbeddedSwiftCompanionApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            SetupView()
         }
     }
 }
