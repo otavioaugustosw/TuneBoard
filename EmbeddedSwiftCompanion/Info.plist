@@ -4,16 +4,18 @@
 <dict>
 	<key>NSAccessorySetupBluetoothCompanyIdentifiers</key>
 	<array>
-		<string>ABCDEF01-1234-5678-1234-56789ABCDEF1</string>
+		<string>F83317EA-84F8-475E-9D60-920BF2225C2D</string>
+		<string>2E0BDAC2-C1FF-4C6C-83C6-B5DC11D0D3F2</string>
 	</array>
 	<key>NSAccessorySetupBluetoothServices</key>
 	<array>
-		<string>12345678-1234-5678-1234-56789ABCDEF0</string>
-		<string>4FAFC201-1FB5-459E-8FCC-C5C9C331914B</string>
+		<string>8ABD86E9-E32C-4784-92BC-3AA99666C544</string>
 	</array>
 	<key>NSAccessorySetupKitSupports</key>
 	<array>
 		<string>Bluetooth</string>
 	</array>
+	<key>UIFileSharingEnabled</key>
+	<true/>
 </dict>
 </plist>

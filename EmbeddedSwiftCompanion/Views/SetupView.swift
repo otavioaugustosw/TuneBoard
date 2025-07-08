@@ -8,11 +8,12 @@
 import SwiftUI
 
 struct SetupView: View {
-    @State var peripheralSM = PeripheralSessionManager()
+    @Environment(BluetoothService.self) private var bleService
+    @Environment(AudioService.self) private var audioService
     @State private var isConnected: Bool = false
     @Namespace private var namespace
     var body: some View {
-        NavigationView {
+        NavigationStack {
             GlassEffectContainer(spacing: 50.0) {
             
                 GeometryReader { geo in
@@ -41,7 +42,7 @@ struct SetupView: View {
                                     
                                     if isConnected {
                                         Button("Remover") {
-                                            peripheralSM.removePeripheral()
+                                            bleService.removeDevice()
                                         }
                                         .buttonStyle(
                                             StandartButton(
@@ -54,9 +55,9 @@ struct SetupView: View {
                                         )
                                     }
                                     Button {
-                                        isConnected ? peripheralSM
-                                            .disconnect() : peripheralSM 
-                                            .connect()
+                                        isConnected ? bleService
+                                            .disconnectDevice() : bleService
+                                            .connectExistingDevice()
                                     } label: {
                                         Text(
                                             isConnected ? "Desconectar" : "Conectar"
@@ -72,7 +73,7 @@ struct SetupView: View {
                                     )
                                     if !isConnected {
                                         Button("Adicionar TuneBoard") {
-                                            peripheralSM.presentPicker()
+                                            bleService.startPairing()
                                         }
                                         .buttonStyle(
                                             StandartButton(
@@ -86,7 +87,7 @@ struct SetupView: View {
                                     }
                                     else {
                                         NavigationLink {
-                                            CardsTestView()
+                                            MixerView(audioService: audioService)
                                         } label: {
                                             Image(systemName: "arrow.forward")
 
@@ -112,10 +113,13 @@ struct SetupView: View {
                     .frame(width: width, height: height)
                 }
             }
-            .onChange(of: peripheralSM.peripheralConnected) {
+            .onChange(of: bleService.isPeripheralConnected) {
                 withAnimation {
-                    isConnected = peripheralSM.peripheralConnected
+                    isConnected = bleService.isPeripheralConnected
                 }
+            }
+            .onAppear{
+                bleService.connectExistingDevice()
             }
         }
     }
@@ -124,3 +128,4 @@ struct SetupView: View {
 #Preview {
     SetupView()
 }
+

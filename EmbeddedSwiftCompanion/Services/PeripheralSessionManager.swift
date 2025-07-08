@@ -1,43 +1,35 @@
-import Foundation
 import AccessorySetupKit
 import CoreBluetooth
 import SwiftUI
 
 @Observable
-class PeripheralSessionManager: NSObject {
-    var peripheralInfo: PeripheralInfo?
-    var receivedValue: String?
-    var peripheralConnected = false
-    var pickerDismissed = true
+internal final class PeripheralSessionManager: NSObject {
+    
+    public var peripheralInfo: PeripheralInfo?
+    public var cardsInSlot: String?
+    public var actualVolume: String?
+    public var peripheralConnected = false
+    public var pickerDismissed = true
 
+    // atributos do bluetooth
     private var currentPeripheral: ASAccessory?
     private var session = ASAccessorySession()
     private var manager: CBCentralManager?
-    private var peripheral: CBPeripheral?
-    private var peripheralCharacteristic: CBCharacteristic?
-
-    private static let peripheralCharacteristicUUID = "ABCDEF01-1234-5678-1234-56789ABCDEF1"
-
-    private static let esp32: ASPickerDisplayItem = {
-        let descriptor = ASDiscoveryDescriptor()
-        descriptor.bluetoothServiceUUID = PeripheralInfo.serviceUUID
-
-        return ASPickerDisplayItem(
-            name: PeripheralInfo.peripheralName,
-            productImage: UIImage(named: "pickerImage")!,
-            descriptor: descriptor
-        )
-    }()
+    
+    // atributos do tuneboard
+    private var tuneboardDevice: CBPeripheral?
+    private var cardsReadingCharacteristic: CBCharacteristic?
+    private var volumeControlCharacteristic: CBCharacteristic?
 
     override init() {
         super.init()
         self.session.activate(on: DispatchQueue.main, eventHandler: handleSessionEvent(event:))
     }
 
-    // MARK: - PeripheralSessionManager actions
+    // MARK: PeripheralSessionManager
 
     func presentPicker() {
-        session.showPicker(for: [Self.esp32]) { error in
+        session.showPicker(for: [PeripheralInfo.tuneboardDeviceInfo]) { error in
             if let error {
                 print("[FALHA NO PICKER] \(error.localizedDescription)")
             }
@@ -61,20 +53,20 @@ class PeripheralSessionManager: NSObject {
     func connect() {
         guard
             let manager, manager.state == .poweredOn,
-            let peripheral
+            let tuneboardDevice
         else {
             return
         }
 
-        manager.connect(peripheral)
+        manager.connect(tuneboardDevice)
     }
 
     func disconnect() {
-        guard let peripheral, let manager else { return }
-        manager.cancelPeripheralConnection(peripheral)
+        guard let tuneboardDevice, let manager else { return }
+        manager.cancelPeripheralConnection(tuneboardDevice)
     }
 
-    // MARK: - ASAccessorySession functions
+    // MARK: ASAccessorySession
 
     private func savePeripheral(peripheral: ASAccessory) {
         currentPeripheral = peripheral
@@ -117,7 +109,7 @@ class PeripheralSessionManager: NSObject {
     }
 }
 
-// MARK: - CBCentralManagerDelegate
+// MARK: CBCentralManagerDelegate
 
 extension PeripheralSessionManager: CBCentralManagerDelegate {
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
@@ -125,11 +117,11 @@ extension PeripheralSessionManager: CBCentralManagerDelegate {
         switch central.state {
         case .poweredOn:
             if let peripheralUUID = currentPeripheral?.bluetoothIdentifier {
-                peripheral = central.retrievePeripherals(withIdentifiers: [peripheralUUID]).first
-                peripheral?.delegate = self
+                tuneboardDevice = central.retrievePeripherals(withIdentifiers: [peripheralUUID]).first
+                tuneboardDevice?.delegate = self
             }
         default:
-            peripheral = nil
+            tuneboardDevice = nil
         }
     }
 
@@ -150,7 +142,7 @@ extension PeripheralSessionManager: CBCentralManagerDelegate {
     }
 }
 
-// MARK: - CBPeripheralDelegate
+// MARK: CBPeripheralDelegate
 
 extension PeripheralSessionManager: CBPeripheralDelegate {
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: (any Error)?) {
@@ -162,7 +154,8 @@ extension PeripheralSessionManager: CBPeripheralDelegate {
         }
 
         for service in services {
-            peripheral.discoverCharacteristics([CBUUID(string: Self.peripheralCharacteristicUUID)], for: service)
+            peripheral.discoverCharacteristics([CBUUID(string: PeripheralInfo.cardsReadingCharacteristicUUID)], for: service)
+            peripheral.discoverCharacteristics([CBUUID(string: PeripheralInfo.volumeControlCharacteristicUUID)], for: service)
             print("[SERVIÇO DESCOBERTA] \(service.uuid.uuidString)")
         }
     }
@@ -175,30 +168,42 @@ extension PeripheralSessionManager: CBPeripheralDelegate {
             return
         }
 
-        for characteristic in characteristics where characteristic.uuid == CBUUID(string: Self.peripheralCharacteristicUUID) {
-            peripheralCharacteristic = characteristic
-            print("[CARACTERÍSTICA DESCOBERTA] \(characteristic.uuid.uuidString)")
-            peripheral.setNotifyValue(true, for: characteristic)
-            peripheral.readValue(for: characteristic)
+        for characteristic in characteristics {
+            if characteristic.uuid.uuidString == PeripheralInfo.cardsReadingCharacteristicUUID {
+                cardsReadingCharacteristic = characteristic
+                print("[CARACTERÍSTICA DESCOBERTA] \(characteristic.uuid.uuidString)")
+                peripheral.setNotifyValue(true, for: characteristic)
+                peripheral.readValue(for: characteristic)
+            }
+            else if characteristic.uuid.uuidString == PeripheralInfo.volumeControlCharacteristicUUID {
+                volumeControlCharacteristic = characteristic
+                print("[CARACTERÍSTICA DESCOBERTA] \(characteristic.uuid.uuidString)")
+                peripheral.setNotifyValue(true, for: characteristic)
+                peripheral.readValue(for: characteristic)
+            }
         }
     }
 
     func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: (any Error)?) {
         guard
             error == nil,
-            characteristic.uuid == CBUUID(string: Self.peripheralCharacteristicUUID),
+            characteristic.uuid == CBUUID(string: PeripheralInfo.cardsReadingCharacteristicUUID) || characteristic.uuid == CBUUID(
+                string: PeripheralInfo.volumeControlCharacteristicUUID
+            ),
             let data = characteristic.value,
             let receivedValue = String(data: data, encoding: .utf8)
         else {
             return
         }
 
-        print("[VALOR RECEBIDO DE \(peripheral.name?.uppercased() ?? "DESCONHECIDO")] \(receivedValue)")
-
         DispatchQueue.main.async {
-            withAnimation {
-                self.receivedValue = receivedValue
+            if characteristic.uuid.uuidString == PeripheralInfo.cardsReadingCharacteristicUUID {
+                self.cardsInSlot = receivedValue
+            }
+            else if characteristic.uuid.uuidString == PeripheralInfo.volumeControlCharacteristicUUID {
+                self.actualVolume = receivedValue
             }
         }
+        
     }
 }

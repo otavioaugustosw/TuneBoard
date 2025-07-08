@@ -9,9 +9,14 @@ import SwiftUI
 
 @main
 struct EmbeddedSwiftCompanionApp: App {
+    @State var bluetoothService = BluetoothService()
+    @State var audioService = AudioService()
     var body: some Scene {
         WindowGroup {
             SetupView()
+                .environment(bluetoothService)
+                .environment(audioService)
+
         }
     }
 }
