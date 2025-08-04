@@ -1,11 +1,11 @@
 # Tuneboard 🎶
 
-**Tuneboard** é um brinquedo musical educacional com hardware integrado ao iOS, projetado para tornar a criação de música uma experiência interativa e divertida.
+Tuneboard é um brinquedo musical educacional com hardware integrado ao iOS, projetado para tornar a criação de música uma experiência interativa e divertida.
 
 
 ## Brinquedo musical integrado ao iPhone
 
-O usuário posiciona **cards físicos** na mesa Tuneboard para montar sua música.  
+O usuário posiciona cards físicos na mesa Tuneboard para montar sua música.  
 Cada card representa uma trilha de áudio ou um efeito (Acelerar, Desacelerar, Pitch, Reverb).  
 O iPhone pareado via Bluetooth Low Energy (BLE) detecta os cards em tempo real e aplica as modificações de áudio instantaneamente.
 
@@ -24,14 +24,14 @@ O iPhone pareado via Bluetooth Low Energy (BLE) detecta os cards em tempo real e
 ## Como funciona? 
 
 1. **Ligação do dispositivo**  
-   - O ESP32-C6 emite beacon BLE; o app iOS se conecta automaticamente (ASK).  
+   - O ESP32-C6 emite beacon BLE e o app iOS se conecta automaticamente (ASK).  
 2. **Leitura dos cards**
   
    - Cada card possui identificação única coordenada pelo ESP, ao aproximar da mesa, o iPhone interpreta qual trilha/efeito ativar.  
 3. **Processamento de Áudio**  
-   - Usando AVFoundation, o app faz mixagem e aplica efeitos em tempo real, com cache inteligente para reduzir uso de memória.  
+   - Usando AVFoundation, o app faz mixagem e aplica efeitos em tempo real, com cache para reduzir uso de memória.  
 4. **Interação contínua**  
-   - Mova, adicione ou remova cards a qualquer momento; o áudio se ajusta instantaneamente.
+   - Mova, adicione ou remova cards a qualquer momento e o irá se áudio se ajustar instantaneamente.
 
 ## Tecnologias utilizadas 🛠
 
